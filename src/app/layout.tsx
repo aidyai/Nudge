@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/inter";
-import "@fontsource/instrument-serif/400-italic.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0A0C10" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#09090B" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
