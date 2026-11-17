@@ -53,8 +53,8 @@ export function useRecorder(onAudio: (blob: Blob) => void) {
             if (!analyser) return;
             analyser.getByteFrequencyData(dataArray);
             let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) {
-              sum += dataArray[i];
+            for (const val of dataArray) {
+              sum += val;
             }
             const avg = sum / dataArray.length;
             // Normalize level between 0 and 1 with a slight curve for visibility
