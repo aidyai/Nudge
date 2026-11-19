@@ -1,58 +1,73 @@
 "use client";
 
 import { useState } from "react";
-import { CHECKS, TOOLS, TRANSCRIPT, TURN_TIMES } from "@/lib/sample";
+import { type Detail, duration, naira, outcome, seconds, summarise } from "@/lib/calls";
 import { Icon } from "@/components/icons";
 
 const TABS = [
   { key: "transcript", label: "Conversation" },
-  { key: "tools", label: "Audit Trace" },
-  { key: "speed", label: "Latency SLA" },
+  { key: "telemetry", label: "Audits & Speed" },
 ] as const;
 
-export function CallDetailView() {
+const LONG_DATE = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+export function CallDetailView({ call }: { call: Detail }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("transcript");
+  const o = outcome(call.outcome);
+  const replies = call.transcript.filter((t) => t.who === "agent" && t.reply_ms);
+  const slowest = Math.max(1.8, ...replies.map((t) => (t.reply_ms ?? 0) / 1000));
+  const passed = call.checks.filter((c) => c.allowed).length;
+  const amount = call.promise?.amount_ngn ?? call.amount_due_ngn;
+  const date = call.promise?.promise_date ? LONG_DATE.format(new Date(`${call.promise.promise_date}T00:00:00Z`)) : "—";
 
   return (
     <div className="stack" style={{ gap: "24px" }}>
-      {/* 1. Structured Resolution Card (Linear Issue Hero Pattern) */}
       <section aria-label="Resolution Summary" className="resolution-card">
         <div className="resolution-top-bar">
           <div className="row" style={{ gap: "10px" }}>
-            <span className="chip chip-green">Promise to Pay Captured</span>
-            <span className="small muted mono">Call ID: B001</span>
+            <span className={`chip chip-${o.tone}`}>{o.label}</span>
+            <span className="small muted mono">Call ID: {call.id.slice(0, 8)}</span>
           </div>
 
           <div className="row" style={{ gap: "8px" }}>
-            <span className="chip chip-gray">Duration: 2m 05s</span>
-            <span className="chip chip-gray">Model: Modal</span>
+            <span className="chip chip-gray">Duration: {duration(call.started_at, call.ended_at)}</span>
+            <span className="chip chip-gray">Engine: {call.llm_backend ?? "—"}</span>
           </div>
         </div>
 
-        <div className="resolution-hero-num">₦25,000</div>
+        <div className="resolution-hero-num">{naira(amount)}</div>
 
         <div className="resolution-meta-grid">
           <div className="meta-field">
-            <span className="label">Committed Repayment Date</span>
-            <span className="val">Friday, 13 November 2026</span>
+            <span className="label">{call.promise ? "Committed Repayment Date" : "Agreed Date"}</span>
+            <span className="val">{date}</span>
           </div>
 
           <div className="meta-field">
             <span className="label">Borrower Record</span>
-            <span className="val">Musa Bello · +234 802 ••• 4491</span>
+            <span className="val">
+              {call.name} · {call.phone}
+            </span>
           </div>
 
           <div className="meta-field">
-            <span className="label">Dispatched Action</span>
+            <span className="label">{call.handoff ? "Handed To A Human" : "Dispatched Action"}</span>
             <span className="val" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <Icon name="check" size={14} />
-              SMS Payment Link Sent
+              {call.handoff ? (
+                call.handoff.reason.replaceAll("_", " ")
+              ) : call.payment_link_sent ? (
+                <>
+                  <Icon name="check" size={14} />
+                  Payment Link Queued
+                </>
+              ) : (
+                "None"
+              )}
             </span>
           </div>
         </div>
       </section>
 
-      {/* Mobile Tab Segment Selector */}
       <div role="tablist" aria-label="Call Sections" className="mobile-segment-tabs">
         {TABS.map((t) => (
           <button
@@ -68,110 +83,96 @@ export function CallDetailView() {
         ))}
       </div>
 
-      {/* 2. Structured Two-Column Detail Grid */}
       <div className="detail-grid-layout">
-        {/* Left Column: Structured Transcript Feed */}
-        <section
-          aria-label="Verbatim Transcript"
-          className="detail-panel"
-          style={{ display: tab === "transcript" ? "block" : undefined }}
-        >
+        <section aria-label="Verbatim Transcript" className={`detail-panel detail-col-transcript ${tab !== "transcript" ? "mobile-hidden" : ""}`}>
           <div className="panel-header">
             <span className="title">Conversation Transcript</span>
-            <span className="small muted mono">{TRANSCRIPT.length} Turns Exchanged</span>
+            <span className="small muted mono">{call.transcript.length} Turns Exchanged</span>
           </div>
 
           <div className="transcript-feed">
-            {TRANSCRIPT.map((turn, i) => (
+            {call.transcript.map((turn, i) => (
               <div key={i} className="turn-entry">
                 <div className="turn-meta">
                   <div className="turn-speaker">
-                    <span>{turn.who === "agent" ? "Nudge Agent" : "Musa Bello (Borrower)"}</span>
+                    <span>{turn.who === "agent" ? "Idara (agent)" : `${call.name} (Borrower)`}</span>
                     <span className="turn-tag">{turn.who === "agent" ? "AI AGENT" : "BORROWER"}</span>
                   </div>
-                  {turn.note && (
+                  {turn.reply_ms ? (
                     <span className="small muted mono" style={{ fontSize: "12px" }}>
-                      {turn.note}
+                      Model reply {seconds(turn.reply_ms)}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div className="turn-text">{turn.text}</div>
               </div>
             ))}
+            {call.transcript.length === 0 && <div className="turn-text muted">Nothing was said on this call.</div>}
           </div>
         </section>
 
-        {/* Right Column: Structured Telemetry & Compliance Sidebar */}
-        <div
-          className="stack"
-          style={{
-            gap: "24px",
-            display: tab !== "transcript" ? "flex" : undefined,
-          }}
-        >
-          {/* Panel 1: Deterministic Engine Invocations */}
-          {(tab === "tools" || typeof window === "undefined") && (
-            <section aria-label="Tool Executions" className="detail-panel">
-              <div className="panel-header">
-                <span className="title">Tool Executions</span>
-                <span className="small muted mono">Deterministic</span>
-              </div>
-              <div className="audit-table">
-                {TOOLS.map(([name, result]) => (
-                  <div key={name} className="audit-row">
-                    <span className="fn">{name}()</span>
-                    <span className="small muted mono">{result}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+        <div className={`stack detail-col-telemetry ${tab !== "telemetry" ? "mobile-hidden" : ""}`} style={{ gap: "24px" }}>
+          <section aria-label="Tool Executions" className="detail-panel">
+            <div className="panel-header">
+              <span className="title">Tool Executions</span>
+              <span className="small muted mono">{call.tools.length} calls</span>
+            </div>
+            <div className="audit-table">
+              {call.tools.map((t, i) => (
+                <div key={i} className="audit-row">
+                  <span className="fn">{t.name}()</span>
+                  <span className="small muted mono">{summarise(t.result)}</span>
+                </div>
+              ))}
+              {call.tools.length === 0 && <div className="audit-row small muted">No tools were used.</div>}
+            </div>
+          </section>
 
-          {/* Panel 2: Policy Compliance Verification */}
-          {(tab === "tools" || typeof window === "undefined") && (
-            <section aria-label="Policy Compliance" className="detail-panel">
-              <div className="panel-header">
-                <span className="title">Compliance Verification</span>
-                <span className="chip chip-green">4/4 Passed</span>
-              </div>
-              <div className="compliance-list">
-                {CHECKS.map((text) => (
-                  <div key={text} className="compliance-row">
-                    <span className="check-icon">
-                      <Icon name="check" size={14} />
-                    </span>
-                    <span style={{ color: "var(--text-secondary)" }}>{text}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          <section aria-label="Rule Checks" className="detail-panel">
+            <div className="panel-header">
+              <span className="title">Rule Checks</span>
+              <span className={passed === call.checks.length ? "chip chip-green" : "chip chip-amber"}>
+                {passed}/{call.checks.length} Passed
+              </span>
+            </div>
+            <div className="compliance-list">
+              {call.checks.map((c, i) => (
+                <div key={i} className="compliance-row">
+                  <span className="check-icon">
+                    <Icon name={c.allowed ? "check" : "pause"} size={14} />
+                  </span>
+                  <span style={{ color: "var(--text-secondary)" }}>
+                    {c.rule.replaceAll("_", " ").toLowerCase()}: {c.reason.replaceAll("_", " ")}
+                  </span>
+                </div>
+              ))}
+              {call.checks.length === 0 && <div className="compliance-row small muted">No rules were checked on this call.</div>}
+            </div>
+          </section>
 
-          {/* Panel 3: Latency SLA Telemetry */}
-          {(tab === "speed" || typeof window === "undefined") && (
-            <section aria-label="Latency SLA Tracking" className="detail-panel">
-              <div className="panel-header">
-                <span className="title">Response Speed (SLA)</span>
-                <span className="small muted mono">Target &le; 1.5s</span>
-              </div>
-              <div className="latency-container">
-                {TURN_TIMES.map((t) => {
-                  const pct = Math.min(100, Math.round((t.seconds / 1.8) * 100));
-                  return (
-                    <div key={t.label} className="latency-row">
-                      <div className="latency-labels">
-                        <span className="strong">{t.label}</span>
-                        <span className="mono muted">{t.seconds.toFixed(1)}s</span>
-                      </div>
-                      <div className="latency-track" role="progressbar" aria-valuenow={t.seconds} aria-valuemin={0} aria-valuemax={1.8}>
-                        <div className="latency-fill" style={{ width: `${pct}%` }} />
-                      </div>
+          <section aria-label="Model Speed" className="detail-panel">
+            <div className="panel-header">
+              <span className="title">Model Reply Time</span>
+              <span className="small muted mono">the brain only</span>
+            </div>
+            <div className="latency-container">
+              {replies.map((t, i) => {
+                const s = (t.reply_ms ?? 0) / 1000;
+                return (
+                  <div key={i} className="latency-row">
+                    <div className="latency-labels">
+                      <span className="strong">Reply {i + 1}</span>
+                      <span className="mono muted">{s.toFixed(1)}s</span>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                    <div className="latency-track" role="progressbar" aria-valuenow={s} aria-valuemin={0} aria-valuemax={slowest}>
+                      <div className="latency-fill" style={{ width: `${Math.min(100, Math.round((s / slowest) * 100))}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {replies.length === 0 && <div className="latency-row small muted">No timed replies on this call.</div>}
+            </div>
+          </section>
         </div>
       </div>
     </div>

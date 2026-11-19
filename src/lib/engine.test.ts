@@ -1,4 +1,4 @@
-import { forward, isAllowed } from "@/lib/engine";
+import { forward, isAllowed, load } from "@/lib/engine";
 
 const ENV = { ENGINE_URL: "https://engine.example.run/", ENGINE_API_KEY: "secret-key" };
 const CALL_ID = "0b0f9f0e-6d6e-4a3b-9d27-3f5f2b1d9a10";
@@ -6,7 +6,7 @@ const post = (body: string, type = "application/json") => new Request("https://s
 
 describe("which paths may be forwarded", () => {
   it("allows the four the demo needs", () => {
-    for (const path of ["calls", `calls/${CALL_ID}/turns`, "speech/transcribe", "speech/say"]) expect(isAllowed(path)).toBe(true);
+    for (const path of ["calls", `calls/${CALL_ID}/turns`, "speech/transcribe", "speech/say", "realtime/tickets", "borrowers"]) expect(isAllowed(path)).toBe(true);
   });
 
   it("refuses everything else", () => {
@@ -57,5 +57,25 @@ describe("forwarding to the engine", () => {
   it("never lets the key into the reply", async () => {
     const response = await forward(post("{}"), "calls", ENV, jest.fn().mockResolvedValue(new Response("ok")));
     expect(JSON.stringify([...response.headers])).not.toContain("secret-key");
+  });
+});
+
+describe("reading the dashboard data", () => {
+  it("adds the key and returns the data", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(Response.json({ calls: [] }));
+    expect(await load("calls", ENV, fetchMock)).toEqual({ data: { calls: [] } });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://engine.example.run/calls");
+    expect((init.headers as Record<string, string>)["X-API-Key"]).toBe("secret-key");
+  });
+
+  it("keeps the status so a missing call can be a 404 page", async () => {
+    const result = await load("calls/x", ENV, jest.fn().mockResolvedValue(Response.json({}, { status: 404 })));
+    expect(result).toMatchObject({ status: 404 });
+  });
+
+  it("says so when the engine is down or not set up", async () => {
+    expect(await load("calls", ENV, jest.fn().mockRejectedValue(new Error("down")))).toMatchObject({ status: 504 });
+    expect(await load("calls", {}, jest.fn())).toMatchObject({ status: 503 });
   });
 });

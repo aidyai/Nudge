@@ -1,4 +1,4 @@
-import type { Tone } from "@/lib/sample";
+import type { Tone } from "@/lib/calls";
 
 export function OutcomeChip({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   return (

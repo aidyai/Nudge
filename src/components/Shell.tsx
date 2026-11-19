@@ -6,10 +6,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <aside className="sidebar">
         <div>
           <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              n
-            </span>
-            <span className="brand-name">nudge</span>
+            <span className="brand-name">nudge-finance</span>
           </div>
           <NavLinks variant="list" />
         </div>

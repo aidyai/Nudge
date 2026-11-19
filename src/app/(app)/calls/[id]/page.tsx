@@ -3,13 +3,17 @@ import { notFound } from "next/navigation";
 import { OutcomeChip } from "@/components/Chip";
 import { CallDetailView } from "@/components/CallDetailView";
 import { PageHeader } from "@/components/PageHeader";
-import { CALLS } from "@/lib/sample";
+import { type Detail, duration, outcome, when } from "@/lib/calls";
+import { load } from "@/lib/engine";
 import { Icon } from "@/components/icons";
+
+export const dynamic = "force-dynamic";
 
 export default async function CallPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const call = CALLS.find((c) => c.id === id && c.hasDetail);
-  if (!call) notFound();
+  const result = await load<Detail>(`calls/${encodeURIComponent(id)}`);
+  if ("error" in result && result.status === 404) notFound();
+  const o = "data" in result ? outcome(result.data.outcome) : null;
 
   return (
     <>
@@ -20,14 +24,21 @@ export default async function CallPage({ params }: { params: Promise<{ id: strin
         </Link>
       </div>
 
-      <PageHeader
-        title="Call"
-        accent={`· ${call.name}`}
-        subtitle={`${call.id} · Recorded Saturday, ${call.time} · Duration: 2m 05s · Engine: ${call.model}`}
-        action={<OutcomeChip tone={call.tone}>{call.outcome}</OutcomeChip>}
-      />
-
-      <CallDetailView />
+      {"error" in result ? (
+        <p className="small" role="alert">
+          {result.error}
+        </p>
+      ) : (
+        <>
+          <PageHeader
+            title="Call"
+            accent={`· ${result.data.name}`}
+            subtitle={`${result.data.borrower_id} · ${when(result.data.started_at)} · Duration: ${duration(result.data.started_at, result.data.ended_at)} · Engine: ${result.data.llm_backend ?? "—"}`}
+            action={o && <OutcomeChip tone={o.tone}>{o.label}</OutcomeChip>}
+          />
+          <CallDetailView call={result.data} />
+        </>
+      )}
     </>
   );
 }

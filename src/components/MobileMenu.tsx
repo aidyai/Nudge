@@ -32,10 +32,7 @@ export function MobileMenu() {
         <div className="menu-drawer">
           <div className="menu-drawer-head">
             <div className="row" style={{ gap: "8px" }}>
-              <span className="brand-mark" aria-hidden="true">
-                n
-              </span>
-              <span className="brand-name">nudge</span>
+              <span className="brand-name">nudge-finance</span>
             </div>
             <button
               type="button"

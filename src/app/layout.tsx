@@ -3,8 +3,8 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nudge",
-  description: "Nudge dashboard and test lab",
+  title: "nudge-finance",
+  description: "nudge-finance: a voice agent that calls borrowers before a loan is due (simulation)",
   robots: { index: false, follow: false },
 };
 
