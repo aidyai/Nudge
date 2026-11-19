@@ -901,7 +901,7 @@ button, input, textarea {
 
 /* Tight Halftone: dense, high-frequency dot screen with micro-gaps */
 .fx-dots-a::before {
-  inset: auto -10% -25% auto; width: 48%; height: 90%;
+  inset: auto -80px -90px auto; width: 260px; height: 220px;
   background: radial-gradient(closest-side, var(--fx-green), var(--fx-blue) 55%, transparent);
   -webkit-mask-image: radial-gradient(circle, #000 1.15px, transparent 1.35px);
   mask-image: radial-gradient(circle, #000 1.15px, transparent 1.35px);
@@ -1505,4 +1505,8 @@ button, input, textarea {
   align-items: center;
   gap: 14px;
   background: var(--surface-0);
+}
+
+@media (max-width: 640px) {
+  .fx-dots-a::before { width: 150px; height: 130px; inset: auto -50px -60px auto; }
 }

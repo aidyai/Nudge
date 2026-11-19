@@ -175,7 +175,7 @@ export function CallSetup({ onReady }: { onReady: (borrowerId: string) => void }
               <span className="caption">Automated Outbound Pipeline</span>
               <h2 className="step-title">Batch Campaign Ingestion</h2>
               <p className="step-desc">
-                Queue multi-borrower debt collection runs via CSV or Excel. The agent schedules outbound calls respecting NDPR and TCPA calling windows.
+                Add many borrowers at once from a CSV or Excel file. This is shown for planning and is not built yet.
               </p>
             </div>
 
@@ -327,14 +327,14 @@ export function CallSetup({ onReady }: { onReady: (borrowerId: string) => void }
                   <span className="caption">Step 02 / 03</span>
                   <h2 className="step-title">Identity Verification Check & Loan Terms</h2>
                   <p className="step-desc">
-                    Nigerian NDPR consumer guidelines require affirmative identity verification prior to any debt disclosure.
+                    Idara checks the birthday before she says any amount. This is a rule in the agent, enforced by code.
                   </p>
                 </div>
 
                 <div className="form-group">
                   <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
                     <label className="form-label">Borrower Date of Birth (Security Question)</label>
-                    <span className="caption">NDPR Compliance Rule</span>
+                    <span className="caption">Identity check</span>
                   </div>
                   <div className="form-row-2">
                     <div>
@@ -481,7 +481,7 @@ export function CallSetup({ onReady }: { onReady: (borrowerId: string) => void }
                     <span className="strong">
                       {form.birthDay} {MONTHS[Number(form.birthMonth) - 1] ?? ""}
                     </span>
-                    <span className="small muted">NDPR Verification Gate</span>
+                    <span className="small muted">Checked before any amount is said</span>
                   </div>
                   <div className="spec-card">
                     <span className="caption">Balance Due</span>
@@ -495,7 +495,7 @@ export function CallSetup({ onReady }: { onReady: (borrowerId: string) => void }
                 <div className="script-preview-panel">
                   <div className="row" style={{ justifyContent: "space-between", marginBottom: "8px" }}>
                     <span className="caption">Agent Opening Hook (Generated)</span>
-                    <span className="chip chip-gray">NDPR Rule Active</span>
+                    <span className="chip chip-gray">Verify first</span>
                   </div>
                   <blockquote className="script-quote">
                     “{greeting(form)}”
@@ -522,7 +522,7 @@ export function CallSetup({ onReady }: { onReady: (borrowerId: string) => void }
                     disabled={saving}
                     onClick={() => void handleFinish()}
                   >
-                    {saving ? "Initializing Telemetry…" : "Start Voice Agent"}
+                    {saving ? "Starting…" : "Start Voice Agent"}
                   </button>
                 </div>
               </div>
